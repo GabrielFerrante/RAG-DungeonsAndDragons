@@ -1,0 +1,31 @@
+# Env conda `ragded` (Python 3.12). Versoes validadas em 2026-09-25 na RTX 3060 (driver CUDA 13.4).
+#
+# ORDEM DE INSTALACAO (importa: o colpali-engine puxa torch do PyPI, que no Windows e so CPU):
+#   1) conda env config vars set -n ragded PYTHONNOUSERSITE=1 HF_HOME=G:\hf_cache PIP_CACHE_DIR=G:\pip_cache
+#      (PYTHONNOUSERSITE evita que o pip/python enxergue o site-packages do Python global do usuario)
+#   2) pip install torch==2.13.0 --index-url https://download.pytorch.org/whl/cu130
+#      pip install --no-deps torchvision==0.28.0+cu130 --index-url https://download.pytorch.org/whl/cu130
+#   3) pip install -r requirements.txt
+#   4) pip install -e . --no-deps        (instala o pacote dnd_rag da pasta src/)
+#   Conferir: pip check  e  python -c "import torch; print(torch.cuda.is_available())"
+#   NOTA: o colpali-engine (0.3.18) esta marcado como deprecated pelos autores (sucessor: Sentence
+#   Transformers v6). O treino atual nao depende dele; fica pinado para o baseline/comparacoes.
+
+transformers==5.17.0
+peft==0.20.0
+bitsandbytes==0.50.2
+accelerate==1.15.0
+trl==1.14.0
+datasets==5.0.1
+colpali-engine==0.3.18
+qdrant-client==1.19.1
+langchain==1.4.2
+langgraph==1.2.12
+pypdfium2==5.13.0
+pdfplumber==0.11.10
+pillow==12.3.0
+numpy==2.5.3
+fastapi==0.141.1
+uvicorn==0.54.0
+pyyaml==6.0.3
+pytest==9.1.1

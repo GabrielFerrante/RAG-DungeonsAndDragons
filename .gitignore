@@ -1,0 +1,21 @@
+# Conteudo licenciado e artefatos pesados: nao versionar
+ArquivosEFontes/*.pdf
+data/
+data_smoke/
+index/
+models/
+outputs/
+*.safetensors
+*.bin
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Ambiente / cache
+.env
+.hf_cache/
+qdrant_storage/

@@ -1,0 +1,10 @@
+# Recria o env base. Depois siga a ORDEM DE INSTALACAO descrita em requirements.txt
+# (torch/torchvision pelo indice cu130 ANTES do pip install -r requirements.txt).
+name: ragded
+dependencies:
+  - python=3.12
+  - pip
+variables:
+  PYTHONNOUSERSITE: "1"
+  HF_HOME: G:\hf_cache        # cache de modelos fora do C: (ajustar em outra maquina)
+  PIP_CACHE_DIR: G:\pip_cache
