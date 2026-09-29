@@ -13,9 +13,9 @@ opcoes de modelo sao lidos do config.json do treino (ao lado do adapter), para n
 paginas que o adapter viu.
 
 Uso:
-  python -m dnd_rag.eval.run_retrieval_eval                                   # modelo original
-  python -m dnd_rag.eval.run_retrieval_eval --adapter outputs\\retriever-lora\\best --compare
-  python -m dnd_rag.eval.run_retrieval_eval --dry-run                         # so mostra o conjunto de avaliacao
+  python main.py eval                                   # modelo original
+  python main.py eval --adapter outputs\\retriever-lora\\best --compare
+  python main.py eval --dry-run                         # so mostra o conjunto de avaliacao
 """
 import argparse
 import json
@@ -26,17 +26,17 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from dnd_rag.eval.metrics import rank_of, retrieval_metrics
-from dnd_rag.train.data import load_pages, load_queries, split_pages
-from dnd_rag.train.train_retriever import DEFAULT_BASE, embed_pages, embed_query, load_image, load_retriever
-
-ROOT = Path(__file__).resolve().parents[3]
+from src.embeddings.embedder import DEFAULT_BASE, embed_pages, embed_query, load_image, load_retriever
+from src.eval.metrics import rank_of, retrieval_metrics
+from src.retrieval.retriever import score_matrix
+from src.train.data import load_pages, load_queries, split_pages
+from src.utils.helpers import CONFIG, ROOT
 
 # opcao -> (conversor, padrao). Quando --adapter e dado, o config.json do treino tem precedencia sobre o padrao.
 TRAIN_OPTIONS = {
     "val_fraction": (float, 0.1),
     "val_block": (int, 20),
-    "min_chars": (int, 300),
+    "min_chars": (int, CONFIG["chunking"]["min_chars"]),
     "seed": (int, 0),
     "max_visual_tokens": (int, 768),
     "base": (str, DEFAULT_BASE),
@@ -103,24 +103,6 @@ def select_eval_set(pages, queries, args):
     extra = rng.sample(others, min(args.distractors, len(others)))
     pool = gold + [k for k in extra if k not in gold_set]
     return items, pool
-
-
-def score_matrix(q_embs, p_embs, device="cuda", chunk: int = 1024) -> np.ndarray:
-    """MaxSim normalizado pelo tamanho da pergunta. q_embs: lista de [Lq, D]; p_embs: lista de [Lp, D]. Retorna [Nq, Np]."""
-    n_q, dim = len(q_embs), q_embs[0].shape[-1]
-    scores = np.empty((n_q, len(p_embs)), dtype=np.float32)
-    for start in range(0, n_q, chunk):
-        block = q_embs[start : start + chunk]
-        length = max(e.shape[0] for e in block)
-        q = torch.zeros(len(block), length, dim, device=device)
-        mask = torch.zeros(len(block), length, device=device)
-        for i, e in enumerate(block):
-            q[i, : e.shape[0]] = e.to(device).float()
-            mask[i, : e.shape[0]] = 1
-        for j, p in enumerate(p_embs):
-            sim = torch.einsum("qld,md->qlm", q, p.to(device).float())  # [Nq, Lq, Lp]
-            scores[start : start + len(block), j] = ((sim.max(-1).values * mask).sum(-1) / mask.sum(-1)).cpu().numpy()
-    return scores
 
 
 def t2i_ranks(scores: np.ndarray, query_page: np.ndarray) -> list[int]:
@@ -235,7 +217,7 @@ def main():
     n_pages = len({k for k, _ in items})
     print(f"split '{args.split}': {len(items)} perguntas em {n_pages} paginas | pool T2I: {len(pool)} paginas", flush=True)
     if not items:
-        sys.exit("Nenhuma pergunta no split escolhido: gere/termine as perguntas sinteticas (dnd_rag.train.make_synthetic).")
+        sys.exit("Nenhuma pergunta no split escolhido: gere/termine as perguntas sinteticas (python main.py synthetic).")
     if args.dry_run:
         print(f"exemplo: {items[0][0]} -> {items[0][1]!r}")
         return

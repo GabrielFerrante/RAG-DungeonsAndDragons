@@ -28,7 +28,7 @@ param(
 Set-Location (Split-Path $PSScriptRoot -Parent)
 $env:PYTHONIOENCODING = "utf-8"
 
-$logDir = "outputs\logs"
+$logDir = "logs"
 New-Item -ItemType Directory -Force $logDir | Out-Null
 $log = Join-Path $logDir ("finetune-{0:yyyyMMdd-HHmmss}.log" -f (Get-Date))
 
@@ -61,9 +61,9 @@ if ($Smoke) {
 
 [void][Win32.Power]::SetThreadExecutionState($ES_CONTINUOUS -bor $ES_SYSTEM_REQUIRED)
 try {
-    if (-not $SkipIngest)    { Invoke-Step "1/3 Ingestao (PDF -> paginas)" "dnd_rag.ingest.pdf_to_pages" $ingestArgs }
-    if (-not $SkipSynthetic) { Invoke-Step "2/3 Perguntas sinteticas (Qwen3-VL local)" "dnd_rag.train.make_synthetic" $synthArgs }
-    Invoke-Step "3/3 Treino LoRA do retriever" "dnd_rag.train.train_retriever" $trainArgs
+    if (-not $SkipIngest)    { Invoke-Step "1/3 Ingestao (PDF -> paginas)" "src.ingestion.loader" $ingestArgs }
+    if (-not $SkipSynthetic) { Invoke-Step "2/3 Perguntas sinteticas (Qwen3-VL local)" "src.train.make_synthetic" $synthArgs }
+    Invoke-Step "3/3 Treino LoRA do retriever" "src.train.train_retriever" $trainArgs
     Write-Host "`nConcluido. Resumo em $out\summary.json" -ForegroundColor Green
 }
 finally {

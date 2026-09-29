@@ -5,17 +5,17 @@ from argparse import Namespace
 import numpy as np
 import torch
 
-from dnd_rag.eval.run_retrieval_eval import (
+from src.eval.run_retrieval_eval import (
     TRAIN_OPTIONS,
     i2t_ranks,
     resolve_train_options,
-    score_matrix,
     select_eval_set,
     summarize,
     t2i_ranks,
 )
-from dnd_rag.train.data import load_pages, load_queries
-from dnd_rag.train.train_retriever import build_data
+from src.retrieval.retriever import score_matrix
+from src.train.data import load_pages, load_queries
+from src.train.train_retriever import build_data
 
 
 def test_score_matrix_matches_naive_maxsim_with_chunking():

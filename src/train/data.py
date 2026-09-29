@@ -1,5 +1,4 @@
 """Dados do fine-tuning do retriever: leitura, split sem vazamento e hard negatives."""
-import json
 import math
 import random
 import re
@@ -8,11 +7,9 @@ from pathlib import Path
 
 import numpy as np
 
+from src.utils.helpers import read_jsonl
+
 Key = tuple[str, int]  # (livro, pagina 1-based)
-
-
-def read_jsonl(path: Path) -> list[dict]:
-    return [json.loads(ln) for ln in path.read_text(encoding="utf-8").splitlines() if ln.strip()]
 
 
 def load_pages(data_dir: Path) -> dict[Key, dict]:

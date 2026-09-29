@@ -7,7 +7,7 @@ respondidas com aquela pagina. Saida: data/synth/queries.jsonl, uma linha por pa
 Retomavel: paginas ja presentes no arquivo sao puladas (Ctrl+C e rode de novo). A ordem das
 paginas e embaralhada (seed fixa) para que um run parcial ja cubra os tres livros.
 
-Uso:  python -m dnd_rag.train.make_synthetic [--questions-per-page 5] [--limit N]
+Uso:  python main.py synthetic [--questions-per-page 5] [--limit N]   (ou: python -m src.train.make_synthetic)
 """
 import argparse
 import json
@@ -19,26 +19,10 @@ from pathlib import Path
 import torch
 from PIL import Image
 
-from dnd_rag.generate.vlm import DEFAULT_MODEL, fit_visual_tokens, load_qwen3vl_4bit
-
-ROOT = Path(__file__).resolve().parents[3]
-
-PROMPT = """Voce esta montando um conjunto de treino para um sistema de busca sobre livros de Dungeons & Dragons 5a edicao, em portugues do Brasil.
-
-Leia a pagina (imagem e texto extraido abaixo) e escreva {n} perguntas em portugues que um jogador ou mestre poderia fazer e que SO podem ser respondidas com o conteudo desta pagina.
-
-Regras:
-- Cada pergunta deve ser autossuficiente: cite o nome da magia, criatura, classe, regra ou item. Nunca diga "esta pagina", "o texto", "a imagem", "acima" ou "abaixo".
-- Varie os tipos: valor numerico (CA, PV, dano, alcance, CD), regra ou condicao, comparacao, descricao, lista.
-- Use apenas informacoes que estao na pagina. Nao invente.
-- Se a pagina nao tiver conteudo de jogo aproveitavel (capa, indice, pagina em branco, creditos), responda com uma lista vazia.
-
-Texto extraido da pagina (pode estar fora de ordem):
-\"\"\"
-{text}
-\"\"\"
-
-Responda somente com JSON no formato {{"perguntas": ["...", "..."]}}."""
+from src.chunking.chunker import fit_visual_tokens
+from src.llm.llm_client import DEFAULT_MODEL, load_qwen3vl_4bit
+from src.prompts.prompt_templates import SYNTHETIC_QUESTIONS_PROMPT
+from src.utils.helpers import CONFIG, ROOT
 
 BANNED = re.compile(r"\b(esta p[aá]gina|nesta p[aá]gina|o texto|na imagem|a imagem|acima|abaixo|no trecho)\b", re.I)
 
@@ -80,7 +64,7 @@ def main():
     parser.add_argument("--data", type=Path, default=ROOT / "data")
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--questions-per-page", type=int, default=5)
-    parser.add_argument("--min-chars", type=int, default=300, help="ignora paginas com menos texto (capas, em branco)")
+    parser.add_argument("--min-chars", type=int, default=CONFIG["chunking"]["min_chars"], help="ignora paginas com menos texto (capas, em branco)")
     parser.add_argument("--max-visual-tokens", type=int, default=1000)
     parser.add_argument("--max-text-chars", type=int, default=3500)
     parser.add_argument("--max-new-tokens", type=int, default=400)
@@ -110,7 +94,7 @@ def main():
         for i, row in enumerate(todo, 1):
             image = fit_visual_tokens(Image.open(args.data / row["image"]).convert("RGB"), args.max_visual_tokens)
             text = (args.data / row["text"]).read_text(encoding="utf-8")[: args.max_text_chars]
-            prompt = PROMPT.format(n=args.questions_per_page, text=text)
+            prompt = SYNTHETIC_QUESTIONS_PROMPT.format(n=args.questions_per_page, text=text)
             conversation = [{"role": "user", "content": [{"type": "image", "image": image}, {"type": "text", "text": prompt}]}]
             inputs = processor.apply_chat_template(
                 [conversation], tokenize=True, add_generation_prompt=True, return_dict=True,

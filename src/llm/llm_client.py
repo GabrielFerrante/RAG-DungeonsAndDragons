@@ -1,11 +1,9 @@
 """Carrega o Qwen3-VL em 4-bit NF4 (cabe na RTX 3060 de 8 GB; medido em scripts/vram_smoke_test.py)."""
-import math
-
 import torch
-from PIL import Image
 
-DEFAULT_MODEL = "Qwen/Qwen3-VL-4B-Instruct"
-TOKEN_PIXELS = 32 * 32  # patch 16 com merge 2x2 => 1 token visual por 32x32 px
+from src.utils.helpers import CONFIG
+
+DEFAULT_MODEL = CONFIG["models"]["vlm"]
 
 
 def load_qwen3vl_4bit(name: str = DEFAULT_MODEL):
@@ -25,11 +23,3 @@ def load_qwen3vl_4bit(name: str = DEFAULT_MODEL):
         name, quantization_config=bnb, dtype=torch.bfloat16, attn_implementation="sdpa", device_map={"": 0}
     )
     return model, AutoProcessor.from_pretrained(name)
-
-
-def fit_visual_tokens(image: Image.Image, max_tokens: int) -> Image.Image:
-    """Reduz a imagem (mantendo a proporcao) para que gere no maximo ~max_tokens tokens visuais."""
-    factor = math.sqrt(max_tokens * TOKEN_PIXELS / (image.width * image.height))
-    if factor >= 1:
-        return image
-    return image.resize((max(32, int(image.width * factor)), max(32, int(image.height * factor))), Image.LANCZOS)

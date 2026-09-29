@@ -13,10 +13,9 @@ Feito para rodar sem supervisao por horas:
   - pula micro-passos com OOM ou perda nao finita em vez de morrer; Ctrl+C salva antes de sair;
   - impede o Windows de suspender enquanto roda.
 
-Uso:  python -m dnd_rag.train.train_retriever [--dry-run] [--epochs 1] [--max-hours 12]
+Uso:  python main.py train [--dry-run] [--epochs 1] [--max-hours 12]   (ou: python -m src.train.train_retriever)
 """
 import argparse
-import ctypes
 import json
 import random
 import shutil
@@ -26,14 +25,13 @@ from pathlib import Path
 
 import torch
 import torch.nn.functional as F
-from PIL import Image
 
-from dnd_rag.eval.metrics import rank_of, retrieval_metrics
-from dnd_rag.generate.vlm import fit_visual_tokens
-from dnd_rag.train.data import load_pages, load_queries, mine_negatives, split_pages
+from src.embeddings.embedder import DEFAULT_BASE, embed_pages, embed_query, load_image, load_retriever
+from src.eval.metrics import rank_of, retrieval_metrics
+from src.retrieval.retriever import maxsim
+from src.train.data import load_pages, load_queries, mine_negatives, split_pages
+from src.utils.helpers import CONFIG, ROOT, keep_awake
 
-ROOT = Path(__file__).resolve().parents[3]
-DEFAULT_BASE = "TomoroAI/tomoro-colqwen3-embed-4b"
 LORA_TARGETS = r".*language_model.*\.(q_proj|k_proj|v_proj|o_proj|gate_proj|up_proj|down_proj)"
 
 
@@ -44,7 +42,7 @@ def parse_args():
     p.add_argument("--base", default=DEFAULT_BASE)
     p.add_argument("--dry-run", action="store_true", help="so prepara/mostra os dados; nao carrega modelo nem treina")
     # dados
-    p.add_argument("--min-chars", type=int, default=300)
+    p.add_argument("--min-chars", type=int, default=CONFIG["chunking"]["min_chars"])
     p.add_argument("--val-fraction", type=float, default=0.1)
     p.add_argument("--val-block", type=int, default=20, help="tamanho (paginas) do bloco de validacao")
     p.add_argument("--val-queries", type=int, default=200)
@@ -72,19 +70,12 @@ def parse_args():
     return p.parse_args()
 
 
-def keep_awake(on: bool):
-    """Windows: evita suspender o PC durante o treino."""
-    if sys.platform == "win32":
-        ES_CONTINUOUS, ES_SYSTEM_REQUIRED = 0x80000000, 0x00000001
-        ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS | (ES_SYSTEM_REQUIRED if on else 0))
-
-
 # ----------------------------------------------------------------------------- dados
 
 def build_data(args):
-    for needed, step in [("manifest.jsonl", "dnd_rag.ingest.pdf_to_pages"), ("synth/queries.jsonl", "dnd_rag.train.make_synthetic")]:
+    for needed, step in [("manifest.jsonl", "ingest"), ("synth/queries.jsonl", "synthetic")]:
         if not (args.data / needed).exists():
-            sys.exit(f"Falta {args.data / needed}: rode `python -m {step}` antes.")
+            sys.exit(f"Falta {args.data / needed}: rode `python main.py {step}` antes.")
     pages = load_pages(args.data)
     queries = load_queries(args.data)
     keys = sorted(k for k, r in pages.items() if r["n_chars"] >= args.min_chars)
@@ -105,32 +96,7 @@ def build_data(args):
     return pages, train, val, negatives, pool
 
 
-def load_image(args, pages, key) -> Image.Image:
-    image = Image.open(args.data / pages[key]["image"]).convert("RGB")
-    return fit_visual_tokens(image, args.max_visual_tokens)
-
-
 # ----------------------------------------------------------------------------- modelo
-
-def load_retriever(args):
-    from transformers import AutoModel, AutoProcessor, BitsAndBytesConfig
-    from transformers.utils import logging as hf_logging
-
-    hf_logging.disable_progress_bar()
-    processor = AutoProcessor.from_pretrained(args.base, trust_remote_code=True, max_num_visual_tokens=args.max_visual_tokens)
-    bnb = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_compute_dtype=torch.bfloat16,
-        bnb_4bit_use_double_quant=True,
-        llm_int8_skip_modules=["visual", "embedding_proj_layer"],  # torre visual e cabeca em bf16
-    )
-    model = AutoModel.from_pretrained(
-        args.base, trust_remote_code=True, quantization_config=bnb, dtype=torch.bfloat16,
-        attn_implementation="sdpa", device_map={"": 0},
-    )
-    return model, processor
-
 
 def add_lora(model, args):
     from peft import LoraConfig, get_peft_model
@@ -148,29 +114,6 @@ def add_lora(model, args):
             p.data = p.data.float()
     peft_model.print_trainable_parameters()
     return peft_model
-
-
-def to_cuda(batch):
-    return {k: v.to("cuda") if isinstance(v, torch.Tensor) else v for k, v in batch.items()}
-
-
-def embed_pages(model, processor, images):
-    feats = to_cuda(processor.process_images(images=images))
-    emb = model(**feats, use_cache=False).embeddings  # [B, L, D]
-    return emb, feats.get("attention_mask", torch.ones(emb.shape[:2], dtype=torch.long, device=emb.device))
-
-
-def embed_query(model, processor, text):
-    feats = to_cuda(processor.process_texts(texts=[text]))
-    emb = model(**feats, use_cache=False).embeddings[0]  # [Lq, D]
-    return emb, feats["attention_mask"][0] if "attention_mask" in feats else torch.ones(emb.shape[0], dtype=torch.long, device=emb.device)
-
-
-def maxsim(q, q_mask, pages, p_mask):
-    """MaxSim (ColBERT): para cada token da query, o melhor token da pagina; soma e normaliza pelo tamanho da query."""
-    sim = torch.einsum("qd,pld->pql", q.float(), pages.float())  # [P, Lq, Lp]
-    sim = sim.masked_fill(~p_mask.bool()[:, None, :], -1e4)
-    return (sim.max(-1).values * q_mask.float()[None]).sum(-1) / q_mask.sum()  # [P]
 
 
 @torch.inference_mode()
@@ -243,7 +186,7 @@ def main():
         flush=True,
     )
     if not train or not val:
-        sys.exit("Sem perguntas de treino/validacao: rode (ou termine) `python -m dnd_rag.train.make_synthetic` antes.")
+        sys.exit("Sem perguntas de treino/validacao: rode (ou termine) `python main.py synthetic` antes.")
     if args.dry_run:
         key, query = train[0]
         print(f"exemplo: {key} -> {query!r}\n  negativos: {negatives[key][: args.neg_per_query]}")

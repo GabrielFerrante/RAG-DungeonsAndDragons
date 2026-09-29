@@ -1,10 +1,10 @@
 """Testes das partes puras do pipeline de fine-tuning (sem GPU, sem modelo)."""
 import numpy as np
 
-from dnd_rag.eval.metrics import rank_of, retrieval_metrics
-from dnd_rag.train.data import mine_negatives, split_pages
-from dnd_rag.train.make_synthetic import parse_questions
-from dnd_rag.train.train_retriever import lr_at
+from src.eval.metrics import rank_of, retrieval_metrics
+from src.train.data import mine_negatives, split_pages
+from src.train.make_synthetic import parse_questions
+from src.train.train_retriever import lr_at
 
 
 def test_rank_of_counts_ties_against_gold():
@@ -50,9 +50,9 @@ def test_parse_questions_filters_bad_items():
 
 
 def test_synthetic_prompt_formats_and_keeps_json_example():
-    from dnd_rag.train.make_synthetic import PROMPT
+    from src.prompts.prompt_templates import SYNTHETIC_QUESTIONS_PROMPT
 
-    text = PROMPT.format(n=5, text="NALFESHNEE Corruptor Grande")
+    text = SYNTHETIC_QUESTIONS_PROMPT.format(n=5, text="NALFESHNEE Corruptor Grande")
     assert "5 perguntas" in text and "NALFESHNEE" in text
     assert '{"perguntas": ["...", "..."]}' in text  # chaves do exemplo JSON sobreviveram ao .format
 
@@ -60,7 +60,7 @@ def test_synthetic_prompt_formats_and_keeps_json_example():
 def test_fit_visual_tokens_respects_budget_and_never_upscales():
     from PIL import Image
 
-    from dnd_rag.generate.vlm import TOKEN_PIXELS, fit_visual_tokens
+    from src.chunking.chunker import TOKEN_PIXELS, fit_visual_tokens
 
     big = Image.new("RGB", (1191, 1684))
     small = fit_visual_tokens(big, 768)

@@ -1,0 +1,15 @@
+# Configuracao compartilhada do projeto (lida por src/utils/helpers.py).
+# Hiperparametros de treino/avaliacao continuam como opcoes de linha de comando de cada script.
+
+models:
+  retriever: TomoroAI/tomoro-colqwen3-embed-4b   # retriever visual multi-vetor (base do fine-tuning)
+  vlm: Qwen/Qwen3-VL-4B-Instruct                 # gera perguntas sinteticas / responde
+
+chunking:
+  min_chars: 300   # paginas com menos texto extraido (capa, em branco) ficam fora do treino/avaliacao
+
+# slug (nome do PDF sem extensao, minusculo) -> nome para citacao
+books:
+  playerbook: Livro do Jogador
+  masterguidebook: Guia do Mestre
+  monstersbook: Livro dos Monstros

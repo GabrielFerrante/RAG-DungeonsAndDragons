@@ -2,7 +2,7 @@
 
 Idempotente: paginas ja renderizadas/extraidas sao puladas, entao pode ser interrompido e retomado.
 
-Uso:  python -m dnd_rag.ingest.pdf_to_pages [--scale 2.0]
+Uso:  python main.py ingest [--scale 2.0]      (ou: python -m src.ingestion.loader)
 """
 import argparse
 import json
@@ -11,14 +11,9 @@ from pathlib import Path
 import pdfplumber
 import pypdfium2 as pdfium
 
-ROOT = Path(__file__).resolve().parents[3]
+from src.utils.helpers import CONFIG, ROOT
 
-# slug (nome do arquivo sem extensao, minusculo) -> nome para citacao
-BOOKS = {
-    "playerbook": "Livro do Jogador",
-    "masterguidebook": "Guia do Mestre",
-    "monstersbook": "Livro dos Monstros",
-}
+BOOKS = CONFIG["books"]  # slug (nome do arquivo sem extensao, minusculo) -> nome para citacao
 
 
 def extract_text(page) -> str:
