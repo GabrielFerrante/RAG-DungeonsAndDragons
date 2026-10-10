@@ -1,0 +1,122 @@
+[
+  {
+    "stage": "retriever-infer",
+    "scale": 1.0,
+    "status": "ok",
+    "seconds": 0.49,
+    "peak_alloc_gb": 3.15,
+    "peak_reserved_gb": 3.24,
+    "image_tokens": 494
+  },
+  {
+    "stage": "retriever-infer",
+    "scale": 1.4,
+    "status": "ok",
+    "seconds": 1.03,
+    "peak_alloc_gb": 3.52,
+    "peak_reserved_gb": 3.6,
+    "image_tokens": 962
+  },
+  {
+    "stage": "retriever-infer",
+    "scale": 1.6,
+    "status": "ok",
+    "seconds": 1.44,
+    "peak_alloc_gb": 3.79,
+    "peak_reserved_gb": 3.88,
+    "image_tokens": 1260
+  },
+  {
+    "stage": "retriever-train",
+    "scale": 1.0,
+    "status": "ok",
+    "seconds": 3.22,
+    "peak_alloc_gb": 3.99,
+    "peak_reserved_gb": 4.23,
+    "image_tokens": 988,
+    "loss": 0.5108
+  },
+  {
+    "stage": "retriever-train",
+    "scale": 1.4,
+    "status": "ok",
+    "seconds": 6.45,
+    "peak_alloc_gb": 5.01,
+    "peak_reserved_gb": 5.53,
+    "image_tokens": 1924,
+    "loss": 0.6516
+  },
+  {
+    "stage": "retriever-train",
+    "scale": 1.6,
+    "status": "ok",
+    "seconds": 8.97,
+    "peak_alloc_gb": 5.88,
+    "peak_reserved_gb": 6.42,
+    "image_tokens": 2520,
+    "loss": 0.3877
+  },
+  {
+    "stage": "gen-infer",
+    "scale": 1.0,
+    "status": "ok",
+    "seconds": 9.83,
+    "peak_alloc_gb": 4.07,
+    "peak_reserved_gb": 4.22,
+    "image_tokens": 1482,
+    "new_tokens": 128,
+    "tokens_per_s": 13.02
+  },
+  {
+    "stage": "gen-infer",
+    "scale": 1.4,
+    "status": "ok",
+    "seconds": 17.75,
+    "peak_alloc_gb": 6.31,
+    "peak_reserved_gb": 6.7,
+    "image_tokens": 2886,
+    "new_tokens": 128,
+    "tokens_per_s": 7.21
+  },
+  {
+    "stage": "gen-infer",
+    "scale": 1.6,
+    "status": "ok",
+    "seconds": 33.75,
+    "peak_alloc_gb": 8.34,
+    "peak_reserved_gb": 8.58,
+    "image_tokens": 3780,
+    "new_tokens": 128,
+    "tokens_per_s": 3.79
+  },
+  {
+    "stage": "gen-train",
+    "scale": 1.0,
+    "status": "ok",
+    "seconds": 3.49,
+    "peak_alloc_gb": 4.05,
+    "peak_reserved_gb": 4.42,
+    "seq_len": 1061,
+    "loss": 0.7924
+  },
+  {
+    "stage": "gen-train",
+    "scale": 1.4,
+    "status": "ok",
+    "seconds": 8.08,
+    "peak_alloc_gb": 5.82,
+    "peak_reserved_gb": 6.38,
+    "seq_len": 1997,
+    "loss": 0.2551
+  },
+  {
+    "stage": "gen-train",
+    "scale": 1.6,
+    "status": "ok",
+    "seconds": 13.4,
+    "peak_alloc_gb": 7.42,
+    "peak_reserved_gb": 8.03,
+    "seq_len": 2593,
+    "loss": 0.0387
+  }
+]

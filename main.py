@@ -4,6 +4,8 @@
   python main.py synthetic   perguntas sinteticas com o Qwen3-VL      (src/train/make_synthetic.py)
   python main.py train       fine-tuning LoRA do retriever            (src/train/train_retriever.py)
   python main.py eval        avaliacao de retrieval T2I / I2T         (src/eval/run_retrieval_eval.py)
+  python main.py model-card  README.md (model card) dos adapters      (src/train/model_card.py)
+  python main.py ask         pergunta em pt-BR -> paginas relevantes  (src/retrieval/ask.py)
 
 As opcoes seguem o comando e sao as do modulo, ex.:  python main.py train --dry-run
 """
@@ -15,6 +17,8 @@ COMMANDS = {
     "synthetic": "src.train.make_synthetic",
     "train": "src.train.train_retriever",
     "eval": "src.eval.run_retrieval_eval",
+    "model-card": "src.train.model_card",
+    "ask": "src.retrieval.ask",
 }
 
 

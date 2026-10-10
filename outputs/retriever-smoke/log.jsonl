@@ -1,0 +1,6 @@
+{"event": "baseline", "recall@1": 1.0, "recall@5": 1.0, "recall@10": 1.0, "mrr": 1.0, "ndcg@5": 1.0, "n": 6}
+{"event": "step", "step": 1, "of": 2, "epoch": 0.067, "loss": 0.0085, "lr": 5e-05, "skipped": 0, "vram_gb": 5.23, "elapsed_h": 0.01}
+{"event": "eval", "step": 1, "recall@1": 1.0, "recall@5": 1.0, "recall@10": 1.0, "mrr": 1.0, "ndcg@5": 1.0, "n": 6}
+{"event": "step", "step": 2, "of": 2, "epoch": 0.133, "loss": 0.0132, "lr": 5e-05, "skipped": 0, "vram_gb": 5.28, "elapsed_h": 0.04}
+{"event": "eval", "step": 2, "recall@1": 1.0, "recall@5": 1.0, "recall@10": 1.0, "mrr": 1.0, "ndcg@5": 1.0, "n": 6}
+{"event": "final", "recall@1": 1.0, "recall@5": 1.0, "recall@10": 1.0, "mrr": 1.0, "ndcg@5": 1.0, "n": 6}

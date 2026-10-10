@@ -1,0 +1,27 @@
+{
+  "baseline": {
+    "recall@1": 1.0,
+    "recall@5": 1.0,
+    "recall@10": 1.0,
+    "mrr": 1.0,
+    "ndcg@5": 1.0,
+    "n": 6
+  },
+  "best": {
+    "step": 1,
+    "recall@1": 1.0,
+    "recall@5": 1.0,
+    "recall@10": 1.0,
+    "mrr": 1.0,
+    "ndcg@5": 1.0,
+    "n": 6
+  },
+  "final": {
+    "recall@1": 1.0,
+    "recall@5": 1.0,
+    "recall@10": 1.0,
+    "mrr": 1.0,
+    "ndcg@5": 1.0,
+    "n": 6
+  }
+}

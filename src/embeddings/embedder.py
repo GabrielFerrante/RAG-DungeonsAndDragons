@@ -6,6 +6,8 @@ from src.chunking.chunker import fit_visual_tokens
 from src.utils.helpers import CONFIG
 
 DEFAULT_BASE = CONFIG["models"]["retriever"]
+DEFAULT_REVISION = CONFIG["models"].get("retriever_revision")  # ver comentario em config.yaml
+LM_HEAD_KEY = r"^vlm\.lm_head\.weight$"
 
 
 def load_image(args, pages, key) -> Image.Image:
@@ -13,23 +15,55 @@ def load_image(args, pages, key) -> Image.Image:
     return fit_visual_tokens(image, args.max_visual_tokens)
 
 
+def ignore_tied_lm_head_in_report(base: str, revision: str | None):
+    """Tira o falso "vlm.lm_head.weight | MISSING" do relatorio de carga.
+
+    O checkpoint nao guarda vlm.lm_head.weight (e o mesmo tensor do embed_tokens). O ColQwen3 faz esse vinculo,
+    mas o tie_weights dele nao repassa missing_keys ao carregador, que entao reporta a chave como faltando
+    mesmo ja vinculada. Declara-la como ignoravel remove o aviso; check_lm_head_tied garante que o vinculo existe.
+    """
+    from transformers.dynamic_module_utils import get_class_from_dynamic_module
+
+    # mesma revisao do from_pretrained logo abaixo: sem isso, poderiam resolver commits diferentes de "main" e
+    # o patch cairia numa classe (cache de modulo) diferente da que o modelo de fato instancia
+    colqwen3 = get_class_from_dynamic_module("modeling_colqwen3.ColQwen3", base, revision=revision)
+    colqwen3._keys_to_ignore_on_load_missing = [LM_HEAD_KEY]
+
+
+def check_lm_head_tied(model):
+    """O lm_head tem de ser o proprio tensor do embed_tokens. Se nao for (ex.: o bnb o quantizou a parte), ele
+    ficou com pesos aleatorios, que era o que o aviso MISSING denunciava de verdade."""
+    if model.get_output_embeddings().weight is not model.get_input_embeddings().weight:
+        raise RuntimeError("vlm.lm_head nao esta amarrado ao embed_tokens: confira llm_int8_skip_modules em load_retriever.")
+
+
 def load_retriever(args):
     from transformers import AutoModel, AutoProcessor, BitsAndBytesConfig
     from transformers.utils import logging as hf_logging
 
     hf_logging.disable_progress_bar()
-    processor = AutoProcessor.from_pretrained(args.base, trust_remote_code=True, max_num_visual_tokens=args.max_visual_tokens)
+    # revision=None (args.base != DEFAULT_BASE) cai no comportamento padrao do transformers: ultimo commit de "main"
+    revision = DEFAULT_REVISION if args.base == DEFAULT_BASE else None
+    ignore_tied_lm_head_in_report(args.base, revision)
+    processor = AutoProcessor.from_pretrained(
+        args.base, revision=revision, trust_remote_code=True, max_num_visual_tokens=args.max_visual_tokens
+    )
     bnb = BitsAndBytesConfig(
         load_in_4bit=True,
         bnb_4bit_quant_type="nf4",
         bnb_4bit_compute_dtype=torch.bfloat16,
         bnb_4bit_use_double_quant=True,
-        llm_int8_skip_modules=["visual", "embedding_proj_layer"],  # torre visual e cabeca em bf16
+        # torre visual e cabeca de projecao em bf16; lm_head tambem fica fora: e so Linear, nunca
+        # e lido pelo forward do ColQwen3 (que chama model.vlm.model, pulando a lm_head), mas sem
+        # este skip o bnb trocava a Linear tied por uma Linear4bit solta, descasando do embed_tokens
+        # e gerando o aviso "vlm.lm_head.weight | MISSING" (pesos aleatorios, so desperdicio de VRAM)
+        llm_int8_skip_modules=["visual", "embedding_proj_layer", "lm_head"],
     )
     model = AutoModel.from_pretrained(
-        args.base, trust_remote_code=True, quantization_config=bnb, dtype=torch.bfloat16,
+        args.base, revision=revision, trust_remote_code=True, quantization_config=bnb, dtype=torch.bfloat16,
         attn_implementation="sdpa", device_map={"": 0},
     )
+    check_lm_head_tied(model)
     return model, processor
 
 

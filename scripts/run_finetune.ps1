@@ -38,8 +38,19 @@ $ES_CONTINUOUS = [uint32]"0x80000000"; $ES_SYSTEM_REQUIRED = [uint32]"0x00000001
 
 function Invoke-Step([string]$Name, [string]$Module, [string]$StepArgs) {
     Write-Host "`n=== $Name ===  (log: $log)" -ForegroundColor Cyan
-    # cmd /c evita que o PowerShell 5.1 trate as linhas de stderr do Python como erros
-    cmd /c "conda run -n ragded --no-capture-output python -u -m $Module $StepArgs 2>&1" | Tee-Object -FilePath $log -Append
+    # Tee-Object no PowerShell 5.1 (o desktop, que vem com o Windows) nao tem parametro -Encoding
+    # (so existe no PowerShell 7+) e por padrao grava em UTF-16LE, ilegivel para grep/editores UTF-8.
+    # StreamWriter com Encoding UTF8 explicito, aberto uma unica vez, evita os dois problemas.
+    $writer = [System.IO.StreamWriter]::new($log, $true, [System.Text.Encoding]::UTF8)
+    try {
+        # cmd /c evita que o PowerShell 5.1 trate as linhas de stderr do Python como erros
+        cmd /c "conda run -n ragded --no-capture-output python -u -m $Module $StepArgs 2>&1" | ForEach-Object {
+            Write-Host $_
+            $writer.WriteLine($_)
+        }
+    } finally {
+        $writer.Dispose()
+    }
     if ($LASTEXITCODE -ne 0) {
         throw "Falha em '$Name' (codigo $LASTEXITCODE). Veja $log"
     }

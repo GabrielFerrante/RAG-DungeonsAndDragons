@@ -4,9 +4,9 @@ data/
 data_smoke/
 index/
 models/
-outputs/
 *.safetensors
 *.bin
+*.pt
 
 # Python
 __pycache__/

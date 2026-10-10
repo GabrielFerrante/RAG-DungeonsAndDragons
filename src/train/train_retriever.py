@@ -30,6 +30,7 @@ from src.embeddings.embedder import DEFAULT_BASE, embed_pages, embed_query, load
 from src.eval.metrics import rank_of, retrieval_metrics
 from src.retrieval.retriever import maxsim
 from src.train.data import load_pages, load_queries, mine_negatives, split_pages
+from src.train.model_card import data_stats, runtime_env, write_model_cards
 from src.utils.helpers import CONFIG, ROOT, keep_awake
 
 LORA_TARGETS = r".*language_model.*\.(q_proj|k_proj|v_proj|o_proj|gate_proj|up_proj|down_proj)"
@@ -297,6 +298,10 @@ def main():
         summary = {"baseline": state["baseline"], "best": state["best"], "final": final}
         (args.out / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
         print(json.dumps(summary, indent=2), flush=True)
+        try:  # troca o README generico do PEFT em best/ e final/ por um model card com os dados deste run
+            write_model_cards(args.out, data_stats(pages, train, val, pool), runtime_env())
+        except Exception as card_error:  # o card e opcional: um erro aqui nao pode derrubar um treino ja salvo
+            print(f"Falha ao gerar os model cards: {card_error!r}", flush=True)
     except KeyboardInterrupt:
         print("Interrompido: salvando checkpoint antes de sair.", flush=True)
         state["micro"] -= state["micro"] % args.grad_accum

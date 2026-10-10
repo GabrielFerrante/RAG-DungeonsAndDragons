@@ -17,3 +17,18 @@ Texto extraido da pagina (pode estar fora de ordem):
 \"\"\"
 
 Responda somente com JSON no formato {{"perguntas": ["...", "..."]}}."""
+
+
+# Resposta final no `main.py ask`, depois do retriever encontrar a(s) pagina(s). Placeholders:
+# {pages} (bloco "Livro: ... / Pagina: ... / Texto extraido: ..." por pagina, ja formatado) e {question}.
+ANSWER_PROMPT = """Voce e um assistente que responde perguntas sobre Dungeons & Dragons 5a edicao, em portugues do Brasil, usando SOMENTE as paginas fornecidas (imagem e texto extraido de cada uma).
+
+{pages}
+
+Pergunta: {question}
+
+Regras:
+- Responda em portugues, de forma direta e objetiva.
+- Cite a fonte de cada afirmacao no formato (Livro, p. N).
+- Use a imagem para confirmar valores exatos (CA, PV, dano, etc.); o texto extraido pode estar fora de ordem.
+- Se as paginas fornecidas NAO tiverem a resposta, diga claramente que nao encontrou a informacao nelas. Nao invente."""

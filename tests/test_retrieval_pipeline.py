@@ -70,6 +70,35 @@ def test_fit_visual_tokens_respects_budget_and_never_upscales():
     assert fit_visual_tokens(tiny, 768) is tiny
 
 
+def test_check_lm_head_tied_accepts_the_shared_tensor_and_rejects_a_detached_head():
+    from types import SimpleNamespace
+
+    import pytest
+    import torch
+
+    from src.embeddings.embedder import check_lm_head_tied
+
+    embed = torch.nn.Embedding(10, 4)
+    tied = torch.nn.Linear(4, 10, bias=False)
+    tied.weight = embed.weight  # o vinculo que o ColQwen3 faz com tie_word_embeddings
+
+    def model(head):
+        return SimpleNamespace(get_input_embeddings=lambda: embed, get_output_embeddings=lambda: head)
+
+    check_lm_head_tied(model(tied))
+    with pytest.raises(RuntimeError, match="lm_head"):
+        check_lm_head_tied(model(torch.nn.Linear(4, 10, bias=False)))  # lm_head com pesos proprios (o caso do bnb)
+
+
+def test_printed_page_applies_per_book_offset():
+    from src.retrieval.ask import printed_page
+
+    assert printed_page("playerbook", 150) == 151   # +1: confirmado visualmente (config.yaml)
+    assert printed_page("masterguidebook", 300) == 299  # -1
+    assert printed_page("monstersbook", 61) == 60    # -1 (Nalfeshnee)
+    assert printed_page("livro_desconhecido", 10) == 10  # sem offset configurado: usa o indice como esta
+
+
 def test_lr_schedule_warms_up_then_decays_to_zero():
     total, base = 100, 1e-4
     assert lr_at(0, total, base) < lr_at(1, total, base) <= base
