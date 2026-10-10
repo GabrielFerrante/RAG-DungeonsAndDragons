@@ -96,6 +96,6 @@ pergunta
      ver book_page_offsets em config.yaml)
 ```
 
-Não existe um banco vetorial rodando: o índice é um arquivo (`page_index.pt`) com os embeddings de todas as páginas do manifesto, calculado uma vez e cacheado fora do repositório (`CACHE_DIR` em `config.yaml`, por padrão `G:\rag_cache` nesta máquina — cai em `outputs/retrieval_index/` se esse disco não existir). A comparação da pergunta contra as ~992 páginas é feita em memória (`torch.einsum` em lote na GPU), não com busca aproximada — nessa escala é mais rápido que indexar com algo como Qdrant (ver decisão em `src/vectordb/`). O índice é específico de cada adapter (`best`, `final` ou o modelo original têm espaços de embedding diferentes), então cada um tem seu próprio arquivo de cache.
+Não existe um banco vetorial rodando: o índice é um arquivo (`page_index.pt`) com os embeddings de todas as páginas do manifesto, calculado uma vez e cacheado fora do repositório (`CACHE_DIR` em `config.yaml`, por padrão `G:\rag_cache` nesta máquina — cai em `outputs/retrieval_index/` se esse disco não existir). A comparação da pergunta contra as ~992 páginas é feita em memória (`torch.einsum` em lote na GPU). O índice é específico de cada adapter (`best`, `final` ou o modelo original têm espaços de embedding diferentes), então cada um tem seu próprio arquivo de cache.
 
 `--no-generate` desliga a etapa 2 (só retrieval); `--gen-pages N` controla quantas páginas do topo o gerador lê (padrão 1); cada pergunta mostra o tempo gasto em cada etapa. Ver `python main.py ask --help` para as demais opções.
