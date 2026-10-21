@@ -6,6 +6,7 @@
   python main.py eval        avaliacao de retrieval T2I / I2T         (src/eval/run_retrieval_eval.py)
   python main.py model-card  README.md (model card) dos adapters      (src/train/model_card.py)
   python main.py ask         pergunta em pt-BR -> paginas relevantes  (src/retrieval/ask.py)
+  python main.py setup       cria o .env e decide GPU (4-bit) ou CPU  (src/utils/setup.py)
 
 As opcoes seguem o comando e sao as do modulo, ex.:  python main.py train --dry-run
 """
@@ -19,6 +20,7 @@ COMMANDS = {
     "eval": "src.eval.run_retrieval_eval",
     "model-card": "src.train.model_card",
     "ask": "src.retrieval.ask",
+    "setup": "src.utils.setup",
 }
 
 

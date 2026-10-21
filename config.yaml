@@ -12,6 +12,13 @@ models:
 chunking:
   min_chars: 300   # paginas com menos texto extraido (capa, em branco) ficam fora do treino/avaliacao
 
+hardware:
+  # Abaixo disso (VRAM total da GPU), os carregadores de inferencia (src/embeddings/embedder.py,
+  # src/llm/llm_client.py) caem para 4-bit em CPU/RAM em vez de 4-bit na GPU (~4,3 GB de RAM por
+  # modelo, medido). 8 GB e o que foi validado neste projeto (RTX 3060). So vale pra inferencia
+  # (python main.py ask); treino continua exigindo GPU.
+  min_vram_gb: 8
+
 paths:
   # Indices de embeddings (page_index.pt) ficam aqui, fora do repositorio: ~470 MB por adapter para o
   # corpus inteiro (medido: 57 MB para 120 paginas), grande demais pra versionar e derivado de conteudo

@@ -90,6 +90,62 @@ def test_check_lm_head_tied_accepts_the_shared_tensor_and_rejects_a_detached_hea
         check_lm_head_tied(model(torch.nn.Linear(4, 10, bias=False)))  # lm_head com pesos proprios (o caso do bnb)
 
 
+def test_env_read_write_roundtrip_preserves_other_lines(tmp_path):
+    from src.utils.helpers import read_env, write_env_value
+
+    env_path = tmp_path / ".env"
+    env_path.write_text("# comentario\nHF_TOKEN=\nDEVICE_MODE=cuda\n", encoding="utf-8")
+
+    assert read_env(env_path) == {"HF_TOKEN": "", "DEVICE_MODE": "cuda"}
+    write_env_value("DEVICE_MODE", "cpu", path=env_path)
+    assert read_env(env_path)["DEVICE_MODE"] == "cpu"
+    assert "HF_TOKEN=" in env_path.read_text(encoding="utf-8")  # as outras linhas sobrevivem
+
+
+def test_env_write_appends_new_key_if_absent(tmp_path):
+    from src.utils.helpers import read_env, write_env_value
+
+    env_path = tmp_path / ".env"
+    env_path.write_text("HF_TOKEN=abc\n", encoding="utf-8")
+    write_env_value("DEVICE_MODE", "cpu", path=env_path)
+    assert read_env(env_path) == {"HF_TOKEN": "abc", "DEVICE_MODE": "cpu"}
+
+
+def test_resolve_device_mode_env_override_wins_regardless_of_vram(monkeypatch):
+    from src.utils.helpers import resolve_device_mode
+
+    monkeypatch.setattr("src.utils.helpers.detect_vram_gb", lambda: 24.0)  # GPU enorme
+    assert resolve_device_mode(env={"DEVICE_MODE": "cpu"}) == "cpu"  # mas o override manda
+
+
+def test_resolve_device_mode_auto_detects_from_vram_threshold(monkeypatch):
+    from src.utils.helpers import CONFIG, resolve_device_mode
+
+    threshold = CONFIG["hardware"]["min_vram_gb"]
+    monkeypatch.setattr("src.utils.helpers.detect_vram_gb", lambda: threshold + 1)
+    assert resolve_device_mode(env={}) == "cuda"
+    monkeypatch.setattr("src.utils.helpers.detect_vram_gb", lambda: threshold - 1)
+    assert resolve_device_mode(env={}) == "cpu"
+    monkeypatch.setattr("src.utils.helpers.detect_vram_gb", lambda: None)  # sem CUDA
+    assert resolve_device_mode(env={}) == "cpu"
+
+
+def test_setup_creates_env_from_example_but_does_not_overwrite(tmp_path, monkeypatch):
+    from src.utils import setup as setup_mod
+
+    example, env = tmp_path / ".env.example", tmp_path / ".env"
+    example.write_text("HF_TOKEN=\nDEVICE_MODE=\n", encoding="utf-8")
+    monkeypatch.setattr(setup_mod, "ROOT", tmp_path)
+    monkeypatch.setattr(setup_mod, "ENV_PATH", env)
+
+    assert setup_mod.ensure_env_file() is True
+    assert env.exists()
+    env.write_text("HF_TOKEN=minha-chave\n", encoding="utf-8")  # edicao local do usuario
+    assert setup_mod.ensure_env_file() is False  # nao sobrescreve
+    assert "minha-chave" in env.read_text(encoding="utf-8")
+    assert setup_mod.ensure_env_file(force=True) is True  # --force recria
+
+
 def test_printed_page_applies_per_book_offset():
     from src.retrieval.ask import printed_page
 

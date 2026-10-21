@@ -29,7 +29,7 @@ from src.embeddings.embedder import embed_pages, embed_query, load_image, load_r
 from src.prompts.prompt_templates import ANSWER_PROMPT
 from src.retrieval.retriever import score_matrix
 from src.train.data import load_pages
-from src.utils.helpers import CACHE_DIR, CONFIG, ROOT
+from src.utils.helpers import CACHE_DIR, CONFIG, ROOT, resolve_device_mode
 
 DEFAULT_ADAPTER = ROOT / "outputs" / "retriever-lora" / "best"
 
@@ -103,7 +103,8 @@ def build_or_load_index(model, processor, args, pages: dict) -> tuple[list, list
 
     print(f"indexando {len(keys)} paginas (uma vez; ~1s/pagina; fica em cache em {path})...", flush=True)
     embeddings = []
-    with torch.inference_mode(), torch.autocast("cuda", dtype=torch.bfloat16):
+    device = next(model.parameters()).device.type
+    with torch.inference_mode(), torch.autocast(device, dtype=torch.bfloat16):
         for i, key in enumerate(keys, 1):
             emb, _ = embed_pages(model, processor, [load_image(args, pages, key)])
             embeddings.append(emb[0].to(torch.bfloat16).cpu())
@@ -116,9 +117,10 @@ def build_or_load_index(model, processor, args, pages: dict) -> tuple[list, list
 
 @torch.inference_mode()
 def search(model, processor, query: str, keys, embeddings, top_k: int):
-    with torch.autocast("cuda", dtype=torch.bfloat16):
+    device = next(model.parameters()).device.type
+    with torch.autocast(device, dtype=torch.bfloat16):
         q_emb = embed_query(model, processor, query)[0].to(torch.bfloat16)
-    scores = score_matrix([q_emb], embeddings)[0]
+    scores = score_matrix([q_emb], embeddings, device=device)[0]
     top = scores.argsort()[::-1][:top_k]
     return [(keys[i], float(scores[i])) for i in top]
 
@@ -137,11 +139,12 @@ def generate_answer(gen_model, gen_processor, question: str, args, pages: dict, 
     prompt = ANSWER_PROMPT.format(pages="\n\n".join(blocks), question=question)
     content = [{"type": "image", "image": im} for im in images] + [{"type": "text", "text": prompt}]
     conversation = [{"role": "user", "content": content}]
+    device = next(gen_model.parameters()).device
     inputs = gen_processor.apply_chat_template(
         [conversation], tokenize=True, add_generation_prompt=True, return_dict=True,
         return_tensors="pt", processor_kwargs={"padding": True},
-    ).to("cuda")
-    with torch.autocast("cuda", dtype=torch.bfloat16):
+    ).to(device)
+    with torch.autocast(device.type, dtype=torch.bfloat16):
         out = gen_model.generate(**inputs, max_new_tokens=args.gen_max_new_tokens, do_sample=False)
     return gen_processor.batch_decode(out[:, inputs["input_ids"].shape[1]:], skip_special_tokens=True)[0].strip()
 
@@ -155,6 +158,8 @@ def main():
     if not pages:
         sys.exit(f"Nenhuma pagina em {args.data}: rode `python main.py ingest` antes.")
 
+    mode = resolve_device_mode()
+    print(f"dispositivo: {mode}" + (" (sem GPU com VRAM suficiente; rode `python main.py setup` pra detalhes)" if mode == "cpu" else ""), flush=True)
     print(f"carregando {args.base}" + (f" + adapter {args.adapter}" if args.adapter else " (sem adapter)") + "...", flush=True)
     model, processor = load_retriever(args)
     model.eval()

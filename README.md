@@ -24,7 +24,7 @@ RAG-DungeonsAndDragons/
 │   ├── front/             # interface (a implementar)
 │   ├── prompts/           # prompt_templates.py: templates de prompt
 │   ├── llm/               # llm_client.py: Qwen3-VL em 4-bit
-│   ├── api/               # routes.py: endpoints FastAPI — a implementar
+│   ├── api/               # routes.py: endpoints Flask — a implementar (ver "Próximos passos")
 │   ├── utils/             # helpers.py: raiz do projeto, config.yaml, JSONL, controle de energia
 │   ├── train/             # perguntas sintéticas, dados, fine-tuning LoRA do retriever e model card dos adapters
 │   └── eval/              # métricas e avaliação de retrieval (T2I / I2T)
@@ -46,6 +46,7 @@ python main.py synthetic            # 2) perguntas sintéticas (horas, GPU; reto
 python main.py train --dry-run      # 3) confere os dados; sem --dry-run treina
 python main.py eval --adapter outputs\retriever-lora\best --compare
 python main.py model-card           # refaz o README.md de best/ e final/ de um treino já concluído
+python main.py setup                # cria o .env e decide GPU (4-bit) ou CPU para a inferência
 python main.py ask                  # 4) pergunta em pt-BR -> resposta com citação (retriever + gerador)
 python -m pytest                    # testes
 ```
@@ -99,3 +100,15 @@ pergunta
 Não existe um banco vetorial rodando: o índice é um arquivo (`page_index.pt`) com os embeddings de todas as páginas do manifesto, calculado uma vez e cacheado fora do repositório (`CACHE_DIR` em `config.yaml`, por padrão `G:\rag_cache` nesta máquina — cai em `outputs/retrieval_index/` se esse disco não existir). A comparação da pergunta contra as ~992 páginas é feita em memória (`torch.einsum` em lote na GPU). O índice é específico de cada adapter (`best`, `final` ou o modelo original têm espaços de embedding diferentes), então cada um tem seu próprio arquivo de cache.
 
 `--no-generate` desliga a etapa 2 (só retrieval); `--gen-pages N` controla quantas páginas do topo o gerador lê (padrão 1); cada pergunta mostra o tempo gasto em cada etapa. Ver `python main.py ask --help` para as demais opções.
+
+### Inferência também funciona sem GPU (CPU)
+
+`python main.py setup` mede a VRAM disponível e decide sozinho: com GPU de pelo menos `hardware.min_vram_gb` (8 GB, em `config.yaml`), carrega os dois modelos em 4-bit na GPU normalmente; **sem GPU suficiente, carrega os dois em 4-bit NF4 também, só que em RAM, via CPU** — o `bitsandbytes` (a partir da versão 0.50) quantiza em CPU do mesmo jeito que na GPU, não é um modo "sem quantizar". Medido neste projeto: **~4,3 GB de RAM por modelo, ~8,6 GB com os dois carregados juntos**. Funciona, só que bem mais lento (minutos por resposta, não segundos, já que a CPU não tem os núcleos tensoriais da GPU). A decisão fica gravada em `DEVICE_MODE` no `.env` e pode ser forçada à mão (`DEVICE_MODE=cuda` ou `cpu`). Não é preciso rodar `setup` antes: o `ask` detecta a mesma coisa sozinho se o `.env` não tiver `DEVICE_MODE`.
+
+Essa alternativa existe só para a etapa de inferência (`ask`) — treino, avaliação e geração de perguntas sintéticas continuam exigindo GPU.
+
+## Próximos passos
+
+- Mecanismo de **reranking** sobre o resultado do retriever.
+- API backend em **Flask**.
+- Interface gráfica em **Electron**.
