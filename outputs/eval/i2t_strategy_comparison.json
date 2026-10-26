@@ -1,0 +1,140 @@
+{
+  "por_imagem": [
+    {
+      "image": "image1-DevoradorDeMentes.png",
+      "gold": "Livro dos Monstros p.65",
+      "legenda_gerada": "Cthulhu, ser humanoide com tentáculos e armadura metálica, cor roxa e olhos brancos.",
+      "embed": {
+        "rank": 27,
+        "segundos": 2.3
+      },
+      "caption": {
+        "rank": 73,
+        "segundos": 4.1
+      },
+      "hybrid": {
+        "rank": 13
+      }
+    },
+    {
+      "image": "image2-DevoradorDeMentes.png",
+      "gold": "Livro dos Monstros p.65",
+      "legenda_gerada": "Cthulhu, criatura de cor escura com tentáculos e armadura metálica, vestindo capa vermelha e cinturão com crânio.",
+      "embed": {
+        "rank": 112,
+        "segundos": 0.9
+      },
+      "caption": {
+        "rank": 156,
+        "segundos": 4.1
+      },
+      "hybrid": {
+        "rank": 134
+      }
+    },
+    {
+      "image": "image3-DevoradorDeMentes.png",
+      "gold": "Livro dos Monstros p.65",
+      "legenda_gerada": "Criação de um monstro de pele cinza com tentáculos e armadura prateada com pedras vermelhas.",
+      "embed": {
+        "rank": 80,
+        "segundos": 1.1
+      },
+      "caption": {
+        "rank": 338,
+        "segundos": 3.6
+      },
+      "hybrid": {
+        "rank": 149
+      }
+    },
+    {
+      "image": "image1-Duplo.png",
+      "gold": "Livro dos Monstros p.122",
+      "legenda_gerada": "Criatura de pele azul-escura, olhos vermelhos brilhantes e forma corpórea musculosa, sem vestimenta, com aparência de monstro de fogo.",
+      "embed": {
+        "rank": 6,
+        "segundos": 0.5
+      },
+      "caption": {
+        "rank": 20,
+        "segundos": 3.9
+      },
+      "hybrid": {
+        "rank": 2
+      }
+    },
+    {
+      "image": "image2-Duplo.png",
+      "gold": "Livro dos Monstros p.122",
+      "legenda_gerada": "Criatura de pele azul-escura, corpo musculoso e olhos vermelhos, sem armas nem vestimenta.",
+      "embed": {
+        "rank": 13,
+        "segundos": 0.8
+      },
+      "caption": {
+        "rank": 13,
+        "segundos": 3.1
+      },
+      "hybrid": {
+        "rank": 5
+      }
+    },
+    {
+      "image": "image1-Grifo.png",
+      "gold": "Livro dos Monstros p.181",
+      "legenda_gerada": "Avestruz de cor marrom com penas desgrenhadas e pico amarelo, em pose de ataque com as asas parcialmente abertas.",
+      "embed": {
+        "rank": 8,
+        "segundos": 0.5
+      },
+      "caption": {
+        "rank": 13,
+        "segundos": 3.5
+      },
+      "hybrid": {
+        "rank": 6
+      }
+    },
+    {
+      "image": "image2-Grifo.png",
+      "gold": "Livro dos Monstros p.181",
+      "legenda_gerada": "Gryphon, corpo de leão com asas de águia, penas castanhas e garras afiadas.",
+      "embed": {
+        "rank": 15,
+        "segundos": 0.7
+      },
+      "caption": {
+        "rank": 1,
+        "segundos": 3.1
+      },
+      "hybrid": {
+        "rank": 3
+      }
+    }
+  ],
+  "resumo": {
+    "embed": {
+      "rank_medio": 37.3,
+      "rank_mediana": 15,
+      "rank_1": 0,
+      "recall@5": 0.0,
+      "n": 7
+    },
+    "caption": {
+      "rank_medio": 87.7,
+      "rank_mediana": 20,
+      "rank_1": 1,
+      "recall@5": 0.143,
+      "n": 7
+    },
+    "hybrid": {
+      "rank_medio": 44.6,
+      "rank_mediana": 6,
+      "rank_1": 0,
+      "recall@5": 0.429,
+      "n": 7
+    }
+  },
+  "rrf_k": 60
+}

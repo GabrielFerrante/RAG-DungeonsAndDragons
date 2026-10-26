@@ -146,6 +146,60 @@ def test_setup_creates_env_from_example_but_does_not_overwrite(tmp_path, monkeyp
     assert setup_mod.ensure_env_file(force=True) is True  # --force recria
 
 
+def test_list_i2t_images_sorted_and_filters_by_extension(tmp_path):
+    from src.retrieval.ask import list_i2t_images
+
+    for name in ("b.png", "a.jpg", "nota.txt", "c.PNG"):  # extensao case-insensitive; .txt fora
+        (tmp_path / name).write_bytes(b"")
+    assert [p.name for p in list_i2t_images(tmp_path)] == ["a.jpg", "b.png", "c.PNG"]
+    assert list_i2t_images(tmp_path / "nao-existe") == []  # pasta ausente: lista vazia, sem erro
+
+
+def test_choose_mode_preset_skips_prompt():
+    from src.retrieval.ask import choose_mode
+
+    assert choose_mode("t2t") == "t2t"
+    assert choose_mode("i2t") == "i2t"
+
+
+def test_choose_mode_prompts_and_accepts_number_or_name(monkeypatch):
+    from src.retrieval.ask import choose_mode
+
+    for answer, expected in [("1", "t2t"), ("", "t2t"), ("t2t", "t2t"), ("2", "i2t"), ("i2t", "i2t")]:
+        monkeypatch.setattr("builtins.input", lambda _, a=answer: a)
+        assert choose_mode(None) == expected
+
+
+def test_choose_mode_reprompts_on_invalid_input(monkeypatch):
+    from src.retrieval.ask import choose_mode
+
+    answers = iter(["algo invalido", "2"])
+    monkeypatch.setattr("builtins.input", lambda _: next(answers))
+    assert choose_mode(None) == "i2t"
+
+
+def test_random_page_crop_is_reproducible_and_stays_within_bounds(tmp_path):
+    import random
+    from argparse import Namespace
+
+    from PIL import Image
+
+    from src.train.train_i2t import random_page_crop
+
+    Image.new("RGB", (400, 300), color=(10, 20, 30)).save(tmp_path / "page.png")
+    args = Namespace(data=tmp_path, max_visual_tokens=768, crop_min_frac=0.25, crop_max_frac=0.6)
+    pages = {("book", 1): {"image": "page.png"}}
+
+    crop_a1 = random_page_crop(args, pages, ("book", 1), random.Random("seed-a"))
+    crop_a2 = random_page_crop(args, pages, ("book", 1), random.Random("seed-a"))
+    crop_b = random_page_crop(args, pages, ("book", 1), random.Random("seed-b"))
+
+    assert crop_a1.size == crop_a2.size and crop_a1.tobytes() == crop_a2.tobytes()  # mesma seed -> mesmo recorte
+    assert crop_a1.size != crop_b.size or crop_a1.tobytes() != crop_b.tobytes()  # seed diferente -> recorte diferente
+    assert crop_a1.width <= 400 and crop_a1.height <= 300  # nunca maior que a pagina
+    assert 75 <= min(crop_a1.size) <= 180  # 0.25-0.6 do lado menor (300px); 768 tokens nao reduz esse tamanho
+
+
 def test_printed_page_applies_per_book_offset():
     from src.retrieval.ask import printed_page
 
